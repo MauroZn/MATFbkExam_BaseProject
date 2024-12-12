@@ -1,0 +1,80 @@
+services:
+  configuration-server:
+    image: configuration-server:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8888:8888"
+    networks:
+      - shop-network
+
+  configuration-client:
+    image: configuration-client
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8889:8889"
+    depends_on:
+      - configuration-server
+    networks:
+      - shop-network
+
+  catalog:
+    image: catalog:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - configuration-client
+    networks:
+      - shop-network
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://shop-eureka-server:8761/eureka/
+  
+  order:
+    image: order:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8890:8890"
+    depends_on:
+      - catalog
+    networks:
+      - shop-network
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://shop-eureka-server:8761/eureka/
+
+  shop-eureka-server:
+    image: shop-eureka-server:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8761:8761"
+    depends_on:
+      - configuration-client
+    networks:
+      - shop-network
+
+  shop-gateway:
+    image: shop-gateway:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "9000:9000"
+    depends_on:
+      - shop-eureka-server
+      - order
+      - catalog
+    networks:
+      - shop-network
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://shop-eureka-server:8761/eureka/
+
+networks:
+  shop-network:
+    driver: bridge
