@@ -7,8 +7,8 @@
     @SpringBootApplication
     public class ShopGatewayApplication {
 
-        @Value("${spring.data.mongodb.uri}")
-        private String mongoUri;
+//        @Value("${spring.data.mongodb.uri}")
+//        private String mongoUri;
 
         public static void main(String[] args) {
             SpringApplication.run(ShopGatewayApplication.class, args);

@@ -18,8 +18,6 @@ services:
     container_name: config-client
     ports:
       - "8889:8889"
-    depends_on:
-      - config-server
     environment:
       - SPRING_PROFILES_ACTIVE=development
       - SPRING_CONFIG_IMPORT=optional:configserver:http://config-server:8888

@@ -12,7 +12,7 @@ public class TestController {
     @Value("${user.role:guest}")
     private String role;
 
-    @Value("${user.password}")
+    @Value("${user.password:defaultpassword}")
     private String password;
 
     @GetMapping("/role")
