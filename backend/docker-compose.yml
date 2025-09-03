@@ -1,80 +1,92 @@
 services:
-  configuration-server:
-    image: configuration-server:latest
+  # Configuration Server
+  config-server:
     build:
-      context: .
+      context: ./ConfigurationServer
       dockerfile: Dockerfile
+    container_name: config-server
     ports:
       - "8888:8888"
     networks:
       - shop-network
 
-  configuration-client:
-    image: configuration-client
+  # Configuration Client
+  config-client:
     build:
-      context: .
+      context: ./ConfigurationClient
       dockerfile: Dockerfile
+    container_name: config-client
     ports:
       - "8889:8889"
     depends_on:
-      - configuration-server
+      - config-server
+    environment:
+      - SPRING_PROFILES_ACTIVE=development
+      - SPRING_CONFIG_IMPORT=optional:configserver:http://config-server:8888
     networks:
       - shop-network
 
+  #Catalog
   catalog:
-    image: catalog:latest
     build:
-      context: .
+      context: ./Catalog
       dockerfile: Dockerfile
-    depends_on:
-      - configuration-client
-    networks:
-      - shop-network
-    environment:
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://shop-eureka-server:8761/eureka/
-  
-  order:
-    image: order:latest
-    build:
-      context: .
-      dockerfile: Dockerfile
+    container_name: catalog
     ports:
-      - "8890:8890"
+      - "8082:8082"
     depends_on:
-      - catalog
+      - config-client
+    environment:
+      - EUREKA_URI=http://shop-eureka-server:8761/eureka
     networks:
       - shop-network
-    environment:
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://shop-eureka-server:8761/eureka/
 
-  shop-eureka-server:
-    image: shop-eureka-server:latest
+  # Order
+  order:
     build:
-      context: .
+      context: ./Order
       dockerfile: Dockerfile
+    container_name: order
+    ports:
+      - "8083:8083"
+    depends_on:
+      - config-client
+      - catalog
+    environment:
+      - EUREKA_URI=http://shop-eureka-server:8761/eureka
+    networks:
+      - shop-network
+
+  # Eureka Server
+  shop-eureka-server:
+    build:
+      context: ./ShopEurekaServer
+      dockerfile: Dockerfile
+    container_name: shop-eureka-server
     ports:
       - "8761:8761"
     depends_on:
-      - configuration-client
-    networks:
-      - shop-network
-
-  shop-gateway:
-    image: shop-gateway:latest
-    build:
-      context: .
-      dockerfile: Dockerfile
-    ports:
-      - "9000:9000"
-    depends_on:
-      - shop-eureka-server
       - order
       - catalog
     networks:
       - shop-network
-    environment:
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://shop-eureka-server:8761/eureka/
 
+  # Shop Gateway
+  shop-gateway:
+    build:
+      context: ./ShopGateway
+      dockerfile: Dockerfile
+    container_name: shop-gateway
+    ports:
+      - "9000:9000"
+    depends_on:
+      - shop-eureka-server
+    environment:
+      - EUREKA_URI=http://shop-eureka-server:8761/eureka
+    networks:
+      - shop-network
+
+# Network
 networks:
   shop-network:
     driver: bridge
